@@ -1998,6 +1998,7 @@ cph_cups_printer_class_rename (CphCups    *cups,
         gboolean          printer_paused = FALSE;
         gboolean          is_default = FALSE;
         int               i;
+        guint             len;
 
         static const char * const requested_attrs[] = {
                 "printer-error-policy",
@@ -2108,8 +2109,8 @@ cph_cups_printer_class_rename (CphCups    *cups,
 
         if (cph_cups_is_class (cups, old_printer_name)) {
                 if (member_names != NULL) {
-                        for (i = 0; i < g_strv_length (member_names); i++) {
-                                cph_cups_class_add_printer (cups, new_printer_name, member_names[i]);
+                        for (len = 0; len < g_strv_length (member_names); len++) {
+                                cph_cups_class_add_printer (cups, new_printer_name, member_names[len]);
                         }
                 }
         } else if (cph_cups_printer_add_with_ppd_file (cups,
@@ -2167,8 +2168,8 @@ cph_cups_printer_class_rename (CphCups    *cups,
 
         if (cph_cups_is_class (cups, old_printer_name)) {
                 if (member_names != NULL) {
-                        for (i = 0; i < g_strv_length (member_names); i++) {
-                                cph_cups_class_delete_printer (cups, old_printer_name, member_names[i]);
+                        for (len = 0; len < g_strv_length (member_names); len++) {
+                                cph_cups_class_delete_printer (cups, old_printer_name, member_names[len]);
                         }
                 }
 
