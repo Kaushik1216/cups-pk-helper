@@ -22,6 +22,8 @@
  *
  */
 
+#include <pappl/device.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -46,6 +48,8 @@
 #include <cups/ppd.h>
 
 #include "cups.h"
+
+#include <pappl/pappl.h>
 
 /* This is 0.1 second */
 #define RECONNECT_DELAY        100000
@@ -1436,7 +1440,8 @@ typedef struct {
 } CphCupsGetDevices;
 
 static void
-_cph_cups_get_devices_cb (const char *device_class,
+_cph_cups_get_devices_cb (bool        device_printer_application_missing,
+                          const char *device_class,
                           const char *device_id,
                           const char *device_info,
                           const char *device_make_and_model,
@@ -1488,8 +1493,147 @@ _cph_cups_get_devices_cb (const char *device_class,
                                        key, device_location);
                 g_free (key);
         }
-
+        if(device_printer_application_missing){
+                key = g_strdup_printf ("device_printer_application_missing:%d",data->iter);
+                g_variant_builder_add (data->builder, "{ss}",
+                                        key, "true");
+                g_free(key);
+        }
         data->iter++;
+}
+
+FILE* DeviceList(CphCups  *cups, 
+               char*     cmd)
+{       char*      error;
+        FILE* fp; 
+
+    if((fp = popen(cmd,"r")) == NULL)
+    {
+      error = g_strdup_printf ("Failed to discover devices via %s.\npopen couldn't run.",cmd);
+     _cph_cups_set_internal_status(cups,error);
+     g_free (error);
+    }
+    return fp;
+}
+
+static bool
+_cph_cups_pappl_device_cb(const char *device_info,const char *device_uri,const char *device_id,void *data)
+{
+    _cph_cups_get_devices_cb( false, NULL, device_id, device_info, NULL, device_uri, NULL, NULL);
+   
+   return true;
+}
+
+int _parse_app_devices( CphCups *cups,
+                        CphCupsGetDevices *data,
+                        char* cmd,
+                        FILE *fp)
+{
+        char     buf[2048];
+        char     device_uri[1024];
+        char	 device_id[1024];
+
+        while(fgets(buf, sizeof(buf), fp)){
+
+	         strcpy(device_uri,buf);
+
+                 device_uri[strlen(device_uri) - 1] = '\0';
+                //  pappl_device_t	  *device;		
+                //  if ((device = papplDeviceOpen(device_uri, "get-id", NULL, NULL)) == NULL)
+                //      {   
+                //         _cph_cups_set_internal_status(cups,
+                //          g_strdup_printf("Cannot get Device '%s'.",device_uri));
+                //         return (1);
+                //      }
+                // if ((papplDeviceGetID(device, device_id, sizeof(device_id))) == NULL)
+                //   { 
+                //         _cph_cups_set_internal_status(cups,
+                //          g_strdup_printf("No device ID for '%s'",device_uri));
+                //   }
+                
+                // papplDeviceClose(device);
+                
+                _cph_cups_get_devices_cb( true, NULL, device_id, NULL, NULL, device_uri, NULL, NULL);
+          }
+
+          return 0;     
+}
+
+int 
+_parse_lp_devices( CphCups  *cups,
+                   CphCupsGetDevices *data,
+                   char*     cmd,
+                   FILE      *fp,
+                   int       *count 
+                  )
+{
+        char     buf[2048];
+        char     *newline,
+                 uri[1024],
+                 info[1024],
+                 class[1024],
+                 id[1024],
+                 mmodel[1024],
+                 location[1024];        
+
+        while(fgets(buf, sizeof(buf), fp)){
+
+	     // device-uri
+			if((newline = strstr(buf,"uri = ")) != NULL)
+			  {
+			    strcpy(uri,newline+6);
+                            uri[strlen(uri) - 1] = '\0';
+			  }
+             // device-class
+			else if((newline = strstr(buf,"class = ")) != NULL)
+			  {
+			    strcpy(class,newline+8);
+                            class[strlen(class) - 1] = '\0';
+			  }
+             // device-info
+		        else if((newline = strstr(buf,"info = ")) != NULL)
+			  {
+			    strcpy(info,newline+7);
+                            info[strlen(info) - 1] = '\0';
+			  }
+             // device make-and-model
+			else if((newline = strstr(buf,"make-and-model = ")) != NULL)
+			  {
+			     strcpy(mmodel,newline+17);
+                             mmodel[strlen(mmodel) - 1] = '\0';
+			  }
+	     // device device-id
+			else if((newline = strstr(buf,"device-id = ")) != NULL)
+			  {
+			    strcpy(id,newline+12);
+                            id[strlen(id) - 1] = '\0';
+			  }
+	     // device location
+			else if((newline = strstr(buf,"location = ")) != NULL)
+			{
+			   strcpy(location,newline+11);
+			   location[strlen(location) - 1] = '\0';
+			    
+                            if(strncmp(mmodel,"Unknown",7) == 0)
+			    {
+                             _cph_cups_set_internal_status( cups, 
+                             g_strdup_printf("Non-device output line from %s",info));
+                             continue;
+                            }
+                            
+                            _cph_cups_get_devices_cb(false, class, id, info, mmodel, uri, location, data);	
+			}   
+                        else
+                        {
+                             _cph_cups_set_internal_status( cups, 
+                             g_strdup_printf("Non familiar output line from lpinfo."));
+                             return (1);
+                        }
+                    *count++;	
+		}
+        pclose(fp);
+
+        return 0;
 }
 
 static gboolean
@@ -1502,11 +1646,11 @@ _cph_cups_devices_get (CphCups           *cups,
                        int                len_exclude,
                        CphCupsGetDevices *data)
 {
-        ipp_status_t  retval;
-        int           timeout_param = CUPS_TIMEOUT_DEFAULT;
+        int           timeout_param = CUPS_TIMEOUT_DEFAULT;  
         char         *include_schemes_param;
         char         *exclude_schemes_param;
-
+        int          count;
+        FILE*         fp;
         if (timeout > 0)
                 timeout_param = timeout;
 
@@ -1520,22 +1664,71 @@ _cph_cups_devices_get (CphCups           *cups,
         else
                 exclude_schemes_param = g_strdup (CUPS_EXCLUDE_NONE);
 
-        retval = cupsGetDevices (cups->priv->connection,
-                                 timeout_param,
-                                 include_schemes_param,
-                                 exclude_schemes_param,
-                                 _cph_cups_get_devices_cb,
-                                 data);
-
-        g_free (include_schemes_param);
-        g_free (exclude_schemes_param);
-
-        if (retval != IPP_OK) {
-                _cph_cups_set_internal_status (cups,
-                                               "Cannot get devices.");
+        // retval = cupsGetDevices (cups->priv->connection,   /* Deprecated */
+        //                          timeout_param, 
+        //                          include_schemes_param,
+        //                          exclude_schemes_param,
+        //                          _cph_cups_get_devices_cb,
+        //                          data);
+        
+        // Printer apps 
+        char *app[] = {   
+                       "hplip",
+                       "hp",
+                       "LPrint",
+                       "gutenprint",
+               	       "ps",
+                       "ghostscript"
+                      };
+                               
+        // Discovering devices via lpinfo -l -v     
+        if((fp = DeviceList(cups,"lpinfo -l -v")) == NULL)
+        {    
                 return FALSE;
         }
 
+        if(_parse_lp_devices( cups, data, "lpinfo", fp , &count ))
+         {
+                _cph_cups_set_internal_status( cups, 
+                              g_strdup_printf("Couldn't read output from lpinfo."));
+                return FALSE;          
+         } 
+         
+         _cph_cups_set_internal_status( cups, 
+                              g_strdup_printf("lpinfo discovered %d devices.",count));
+
+         
+        // Discovering devices via printer applications 
+	  for(int i = 0; i < 4; i++)
+   	  { 
+             char *cmd = g_strdup_printf("%s-printer-app devices",app[i]); 
+             
+             if((fp = DeviceList(cups,"cmd")) == NULL)
+             {
+                return FALSE;
+             }
+
+             if(_parse_app_devices(cups, data, app[i], fp))
+             {
+                 _cph_cups_set_internal_status( cups, 
+                                 g_strdup_printf("Error while getting devices from %s.",app[i]));
+                 return FALSE;
+             }
+
+             g_free(cmd);
+	  }
+
+        /*  pappl_device_cb_t callback = &_cph_cups_pappl_device_cb; 
+        //  papplDeviceList( PAPPL_DEVTYPE_ALL,
+        //                   callback,                  
+        //                   data,
+        //                   NULL,
+                      NULL );
+        */    
+		
+        g_free (include_schemes_param);
+        g_free (exclude_schemes_param);
+        
         return TRUE;
 }
 
