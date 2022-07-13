@@ -1516,12 +1516,20 @@ FILE* DeviceList(CphCups  *cups,
     return fp;
 }
 
+static void 
+_cph_cups_pappl_device_err_cb(const char *message, CphCups *cups)
+{        _cph_cups_set_internal_status( cups, 
+                          g_strdup_printf("%s",message));
+        return;
+}
+
 static bool
 _cph_cups_pappl_device_cb(const char *device_info,const char *device_uri,const char *device_id,void *data)
 {
+        (void)data;
     _cph_cups_get_devices_cb( false, NULL, device_id, device_info, NULL, device_uri, NULL, NULL);
    
-   return true;
+   return (false);
 }
 
 int _parse_app_devices( CphCups *cups,
@@ -1537,22 +1545,7 @@ int _parse_app_devices( CphCups *cups,
 
 	         strcpy(device_uri,buf);
 
-                 device_uri[strlen(device_uri) - 1] = '\0';
-                //  pappl_device_t	  *device;		
-                //  if ((device = papplDeviceOpen(device_uri, "get-id", NULL, NULL)) == NULL)
-                //      {   
-                //         _cph_cups_set_internal_status(cups,
-                //          g_strdup_printf("Cannot get Device '%s'.",device_uri));
-                //         return (1);
-                //      }
-                // if ((papplDeviceGetID(device, device_id, sizeof(device_id))) == NULL)
-                //   { 
-                //         _cph_cups_set_internal_status(cups,
-                //          g_strdup_printf("No device ID for '%s'",device_uri));
-                //   }
-                
-                // papplDeviceClose(device);
-                
+                 device_uri[strlen(device_uri) - 1] = '\0';                
                 _cph_cups_get_devices_cb( true, NULL, device_id, NULL, NULL, device_uri, NULL, NULL);
           }
 
@@ -1671,11 +1664,10 @@ _cph_cups_devices_get (CphCups           *cups,
         //                          _cph_cups_get_devices_cb,
         //                          data);
         
-        // Printer apps 
+        // Printer apps      
         char *app[] = {   
-                       "hplip",
+                       "hplip",                  // TO DO - Discovery of Printer Applications
                        "hp",
-                       "LPrint",
                        "gutenprint",
                	       "ps",
                        "ghostscript"
@@ -1718,13 +1710,12 @@ _cph_cups_devices_get (CphCups           *cups,
              g_free(cmd);
 	  }
 
-        /*  pappl_device_cb_t callback = &_cph_cups_pappl_device_cb; 
-        //  papplDeviceList( PAPPL_DEVTYPE_ALL,
-        //                   callback,                  
-        //                   data,
-        //                   NULL,
-                      NULL );
-        */    
+         papplDeviceList( PAPPL_DEVTYPE_ALL,
+                          _cph_cups_pappl_device_cb,                  
+                          NULL,
+                          _cph_cups_pappl_device_err_cb,
+                          cups );
+           
 		
         g_free (include_schemes_param);
         g_free (exclude_schemes_param);
