@@ -3,15 +3,16 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
+# Milo Ivir <mail@milotype.de>, 2020
 # Tomislav Krznar <tomislav.krznar@gmail.com>, 2012
-# gogo <trebelnik2@gmail.com>, 2017
+# gogo <trebelnik2@gmail.com>, 2017,2019
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2011-03-22 20:04+0100\n"
-"PO-Revision-Date: 2017-09-23 18:36+0000\n"
-"Last-Translator: gogo <trebelnik2@gmail.com>\n"
+"PO-Revision-Date: 2010-11-30 06:44+0000\n"
+"Last-Translator: Milo Ivir <mail@milotype.de>, 2020\n"
 "Language-Team: Croatian (http://www.transifex.com/freedesktop/cups-pk-helper/language/hr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -88,25 +89,25 @@ msgstr "Potrebne su ovlasti za preuzimanje/postavljanje postavki poslužitelja."
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
 msgid ""
 "Privileges are required to restart/cancel/edit a job owned by another user."
-msgstr "Potrebne su ovlasti za ponovno pokretanje/otkazivanje/uređivanje zadatka čiji je vlasnik drugi korisnik."
+msgstr "Potrebne su ovlasti za ponovno pokretanje/prekidanje/uređivanje zadatka čiji je vlasnik drugi korisnik."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
 msgid "Privileges are required to restart/cancel/edit a job."
-msgstr "Potrebne su ovlasti za ponovno pokretanje/otkazivanje/uređivanje zadatka."
+msgstr "Potrebne su ovlasti za ponovno pokretanje/prekidanje/uređivanje zadatka."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
 msgid ""
 "Privileges are required to set a printer, or a class, as default printer."
-msgstr "Potrebne su ovlasti za postavljanje pisača ili razreda za zadani pisač."
+msgstr "Potrebne su ovlasti za postavljanje pisača ili razreda kao zadani pisač."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
 msgid "Restart/Cancel/Edit a job"
-msgstr "Ponovo pokreni/otkaži/uredi zadatak"
+msgstr "Ponovo pokreni/prekini/uredi zadatak"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:21
 msgid "Restart/Cancel/Edit a job owned by another user"
-msgstr "Ponovo pokreni/otkaži/uredi zadatak čiji je vlasnik drugi korisnik"
+msgstr "Ponovo pokreni/prekini/uredi zadatak čiji je vlasnik drugi korisnik"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:22
 msgid "Set a printer as default printer"
-msgstr "Postavi pisač za zadani pisač"
+msgstr "Postavi pisač kao zadani pisač"

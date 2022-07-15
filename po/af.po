@@ -3,111 +3,109 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# Jiri Grönroos <jiri.gronroos@iki.fi>, 2012,2020
-# Kimmo Kujansuu <mrkujansuu@gmail.com>, 2019
-# Ville Skyttä <ville.skytta@iki.fi>, 2011
+# F Wolff <friedel@translate.org.za>, 2019
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2011-03-22 20:04+0100\n"
 "PO-Revision-Date: 2010-11-30 06:44+0000\n"
-"Last-Translator: Jiri Grönroos <jiri.gronroos@iki.fi>, 2012,2020\n"
-"Language-Team: Finnish (http://www.transifex.com/freedesktop/cups-pk-helper/language/fi/)\n"
+"Last-Translator: F Wolff <friedel@translate.org.za>, 2019\n"
+"Language-Team: Afrikaans (http://www.transifex.com/freedesktop/cups-pk-helper/language/af/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: fi\n"
+"Language: af\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
 msgid "Add/Remove/Edit a class"
-msgstr "Lisää/poista/muokkaa luokkaa"
+msgstr "Voeg by/verwyder/redigeer ’n klas"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:2
 msgid "Add/Remove/Edit a local printer"
-msgstr "Lisää/poista/muokkaa paikallinen tulostin"
+msgstr "Voeg by/verwyder/redigeer ’n plaaslike drukker"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:3
 msgid "Add/Remove/Edit a printer"
-msgstr "Lisää/poista/muokkaa tulostin"
+msgstr "Voeg by/verwyder/redigeer ’n drukker"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:4
 msgid "Add/Remove/Edit a remote printer"
-msgstr "Lisää, poista tai muokkaa etätulostinta"
+msgstr "Voeg by/verwyder/redigeer ’n afgeleë drukker"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:5
 msgid "Change printer settings"
-msgstr "Muuta tulostinasetuksia"
+msgstr "Verander drukkerinstellings"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
 msgid "Enable/Disable a printer"
-msgstr "Ota tulostin käyttöön tai poista käytöstä"
+msgstr "Aktiveer/deaktiveer ’n drukker"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:7
 msgid "Get list of available devices"
-msgstr "Hanki luettelo käytettävissä olevista laitteista"
+msgstr "Kry lys van beskikbare toestelle"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
 msgid "Get/Set server settings"
-msgstr "Hae/määritä palvelimen asetukset"
+msgstr "Kry/stel bedienerinstellings"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
 msgid "Privileges are required to add/remove/edit a class."
-msgstr "Luokan lisääminen/poistaminen/muokkaaminen edellyttää oikeuksia."
+msgstr "Toestemming is nodig vir byvoeging/verwydering/redigering van ’n klas."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
 msgid "Privileges are required to add/remove/edit a local printer."
-msgstr "Paikallisen tulostimen lisääminen/poistaminen/muokkaaminen vaatii etuoikeudet."
+msgstr "Toestemming is nodig vir byvoeging/verwydering/redigering van ’n plaaslike drukker."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
 msgid "Privileges are required to add/remove/edit a printer."
-msgstr "Tulostimen lisääminen/poistaminen/muokkaaminen vaatii etuoikeudet."
+msgstr "Toestemming is nodig vir byvoeging/verwydering/redigering van ’n drukker."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
 msgid "Privileges are required to add/remove/edit a remote printer."
-msgstr "Etätulostimen lisääminen/poistaminen/muokkaaminen vaatii etuoikeudet."
+msgstr "Toestemming is nodig vir byvoeging/verwydering/redigering van ’n afgeleë drukker."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
 msgid ""
 "Privileges are required to change printer settings. This should only be "
 "needed from the Printers system settings panel."
-msgstr "Tulostimen asetusten muuttaminen edellyttää oikeuksia. Tätä tulisi tarvita vain järjestelmäasetusten Tulostimet-paneelissa."
+msgstr "Toestemming is nodig om drukkerinstellings te verander. Dit behoort slegs nodig te wees vanaf die paneel vir drukkerinstellings."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
 msgid "Privileges are required to enable/disable a printer, or a class."
-msgstr "Oikeudet vaaditaan tulostimen tai ryhmän sallimiseksi/poistamiseksi käytöstä."
+msgstr "Toestemming is nodig vir aktivering/deaktivering van ’n drukker of klas."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
 msgid "Privileges are required to get list of available devices."
-msgstr "Oikeudet vaaditaan saadaksisi luettelon käytettävissä olevista laitteista."
+msgstr "Toestemming is nodig om ’n lys van beskikbare toestelle te kry."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:16
 msgid "Privileges are required to get/set server settings."
-msgstr "Oikeudet vaaditaan palvelinasetusten saamiseksi."
+msgstr "Toestemming is nodig om bedienerinstellings te kry/stel."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
 msgid ""
 "Privileges are required to restart/cancel/edit a job owned by another user."
-msgstr "Oikeudet vaaditaan toisen käyttäjän omistaman työn käynnistäminen/peruuttaminen/muokkaaminen."
+msgstr "Toestemming is nodig om ’n taak van ’n ander gebruiker te herbegin/kanselleer/redigeer."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
 msgid "Privileges are required to restart/cancel/edit a job."
-msgstr "Tehtävien uudelleen käynnistys/peruuttaminen/muokkaaminen edellyttää oikeuksia."
+msgstr "Toestemming is nodig om ’n taak te herbegin/kanselleer/redigeer."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
 msgid ""
 "Privileges are required to set a printer, or a class, as default printer."
-msgstr "Tulostimen tai ryhmän määrittäminen oletustulostimeksi vaatii etuoikeudet."
+msgstr "Toestemming is nodig om ’n drukker of klas as verstekdrukker in te stel."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
 msgid "Restart/Cancel/Edit a job"
-msgstr "Käynnistä uudelleen, peru tai muokkaa työtä"
+msgstr "Herbegin/kanselleer/redigeer ’n taak"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:21
 msgid "Restart/Cancel/Edit a job owned by another user"
-msgstr "Käynnistä uudelleen, peru tai muokkaa toisen käyttäjän työtä"
+msgstr "Herbegin/kanselleer/redigeer ’n taak van ’n ander gebruiker"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:22
 msgid "Set a printer as default printer"
-msgstr "Aseta tulostin oletustulostimeksi"
+msgstr "Stel ’n drukker as verstekdrukker"

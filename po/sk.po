@@ -3,22 +3,22 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# helix84 <helix84@centrum.sk>, 2015
-# helix84 <helix84@centrum.sk>, 2011
+# Ivan Masár <helix84@centrum.sk>, 2015
+# Ivan Masár <helix84@centrum.sk>, 2011
 # Matej Moško <matej.mosko@gmail.com>, 2011
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2011-03-22 20:04+0100\n"
-"PO-Revision-Date: 2017-09-23 18:05+0000\n"
-"Last-Translator: helix84 <helix84@centrum.sk>\n"
+"PO-Revision-Date: 2010-11-30 06:44+0000\n"
+"Last-Translator: Ivan Masár <helix84@centrum.sk>, 2015\n"
 "Language-Team: Slovak (http://www.transifex.com/freedesktop/cups-pk-helper/language/sk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language: sk\n"
-"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n == 1 ? 0 : n % 1 == 0 && n >= 2 && n <= 4 ? 1 : n % 1 != 0 ? 2: 3);\n"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
 msgid "Add/Remove/Edit a class"

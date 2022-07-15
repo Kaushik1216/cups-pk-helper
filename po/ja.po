@@ -3,14 +3,14 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# Tomoyuki KATO <inactive+katomo@transifex.com>, 2011
+# e93ed3aa97dec2eb31063731872555fc_1460a05 <71305a0095156d8e18373a5b7cfeb79e_8587>, 2011
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2011-03-22 20:04+0100\n"
-"PO-Revision-Date: 2017-09-19 10:41+0000\n"
-"Last-Translator: Marek Kasik <mkasik@redhat.com>\n"
+"PO-Revision-Date: 2010-11-30 06:44+0000\n"
+"Last-Translator: e93ed3aa97dec2eb31063731872555fc_1460a05 <71305a0095156d8e18373a5b7cfeb79e_8587>, 2011\n"
 "Language-Team: Japanese (http://www.transifex.com/freedesktop/cups-pk-helper/language/ja/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"

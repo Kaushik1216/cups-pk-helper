@@ -1,0 +1,110 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# 
+# Translators:
+msgid ""
+msgstr ""
+"Project-Id-Version: cups-pk-helper\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2011-03-22 20:04+0100\n"
+"PO-Revision-Date: 2010-11-30 06:44+0000\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: Sinhala (http://www.transifex.com/freedesktop/cups-pk-helper/language/si/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: si\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
+msgid "Add/Remove/Edit a class"
+msgstr "පන්තියක් එක් කරන්න/ඉවත් කරන්න/සංස්කරණය කරන්න"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:2
+msgid "Add/Remove/Edit a local printer"
+msgstr "දේශීය මුද්‍රණ යන්ත්‍රයක් එක් කරන්න/ඉවත් කරන්න/සංස්කරණය කරන්න"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:3
+msgid "Add/Remove/Edit a printer"
+msgstr "මුද්‍රණ යන්ත්‍රයක් එකතු කරන්න/ඉවත් කරන්න/සංස්කරණය කරන්න"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:4
+msgid "Add/Remove/Edit a remote printer"
+msgstr "දුරස්ථ මුද්‍රණ යන්ත්‍රයක් එක් කරන්න/ඉවත් කරන්න/සංස්කරණය කරන්න"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:5
+msgid "Change printer settings"
+msgstr "මුද්‍රණ සැකසුම් වෙනස් කරන්න"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
+msgid "Enable/Disable a printer"
+msgstr "මුද්‍රණ යන්ත්‍රයක් සබල/අබල කරන්න"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:7
+msgid "Get list of available devices"
+msgstr "පවතින උපාංග ලැයිස්තුව ලබා ගන්න"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
+msgid "Get/Set server settings"
+msgstr "සේවාදායක සැකසුම් ලබා ගන්න/සකසන්න"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
+msgid "Privileges are required to add/remove/edit a class."
+msgstr "පන්තියක් එක් කිරීමට/ඉවත් කිරීමට/සංස්කරණය කිරීමට වරප්‍රසාද අවශ්‍ය වේ."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
+msgid "Privileges are required to add/remove/edit a local printer."
+msgstr "දේශීය මුද්‍රණ යන්ත්‍රයක් එක් කිරීමට/ඉවත් කිරීමට/සංස්කරණය කිරීමට වරප්‍රසාද අවශ්‍ය වේ."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
+msgid "Privileges are required to add/remove/edit a printer."
+msgstr "මුද්‍රණ යන්ත්‍රයක් එක් කිරීමට/ඉවත් කිරීමට/සංස්කරණය කිරීමට වරප්‍රසාද අවශ්‍ය වේ."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
+msgid "Privileges are required to add/remove/edit a remote printer."
+msgstr "දුරස්ථ මුද්‍රණ යන්ත්‍රයක් එක් කිරීමට/ඉවත් කිරීමට/සංස්කරණය කිරීමට වරප්‍රසාද අවශ්‍ය වේ."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
+msgid ""
+"Privileges are required to change printer settings. This should only be "
+"needed from the Printers system settings panel."
+msgstr "මුද්‍රණ සැකසුම් වෙනස් කිරීමට වරප්‍රසාද අවශ්‍ය වේ. මෙය අවශ්‍ය වන්නේ මුද්‍රණ පද්ධති සැකසුම් පැනලයෙන් පමණි."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
+msgid "Privileges are required to enable/disable a printer, or a class."
+msgstr "මුද්‍රණ යන්ත්‍රයක් හෝ පන්තියක් සබල/අබල කිරීමට වරප්‍රසාද අවශ්‍ය වේ."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
+msgid "Privileges are required to get list of available devices."
+msgstr "පවතින උපාංග ලැයිස්තුව ලබා ගැනීමට වරප්‍රසාද අවශ්‍ය වේ."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:16
+msgid "Privileges are required to get/set server settings."
+msgstr "සේවාදායක සැකසුම් ලබා ගැනීමට/සැකසීමට වරප්‍රසාද අවශ්‍ය වේ."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
+msgid ""
+"Privileges are required to restart/cancel/edit a job owned by another user."
+msgstr "වෙනත් පරිශීලකයෙකු සතු රැකියාවක් නැවත ආරම්භ කිරීමට/අවලංගු කිරීමට/සංස්කරණය කිරීමට වරප්‍රසාද අවශ්‍ය වේ."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
+msgid "Privileges are required to restart/cancel/edit a job."
+msgstr "රැකියාවක් නැවත ආරම්භ කිරීමට/අවලංගු කිරීමට/සංස්කරණය කිරීමට වරප්‍රසාද අවශ්‍ය වේ."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
+msgid ""
+"Privileges are required to set a printer, or a class, as default printer."
+msgstr "පෙරනිමි මුද්‍රණ යන්ත්‍රයක් ලෙස මුද්‍රණ යන්ත්‍රයක් හෝ පන්තියක් සැකසීමට වරප්‍රසාද අවශ්‍ය වේ."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
+msgid "Restart/Cancel/Edit a job"
+msgstr "රැකියාවක් නැවත ආරම්භ කරන්න/අවලංගු කරන්න/සංස්කරණය කරන්න"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:21
+msgid "Restart/Cancel/Edit a job owned by another user"
+msgstr "වෙනත් පරිශීලකයෙකුට අයත් කාර්යයක් නැවත ආරම්භ කරන්න/අවලංගු කරන්න/සංස්කරණය කරන්න"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:22
+msgid "Set a printer as default printer"
+msgstr "පෙරනිමි මුද්‍රණ යන්ත්‍රයක් ලෙස මුද්‍රණ යන්ත්‍රයක් සකසන්න"
