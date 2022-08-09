@@ -19,17 +19,20 @@ You may download updates to the package from:
 Installation
 ============
 
-See the file 'INSTALL'. If you are not using a released version of
-cups-pk-helper (for example, if you checked out the code from git), you
-first need to run './autogen.sh'.
+You can use one of these commands to install cups-pk-helper:
+
+DESTDIR=/path/to/staging/area meson install
+meson install --destdir=/path/to/staging/area
+
+Or just "meson install" if you've set "prefix" option before.
 
 
 How to report bugs
 ==================
 
-Bugs should be reported to the freedesktop.org bug tracking system:
+Please report found issues and feature requests in freedesktop.org's GitLab:
 
-   https://bugs.freedesktop.org/ (product cups-pk-helper)
+   https://gitlab.freedesktop.org/cups-pk-helper/cups-pk-helper/-/issues
 
 You will need to create an account for yourself.
 
