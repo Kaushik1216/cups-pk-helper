@@ -1,4 +1,19 @@
 =============
+Version 0.2.7
+=============
+
++ Use meson build system (Marek)
++ Remove code using CUPS 1.5 and lower (Marek)
++ Remove calls to deprecated g_type_init() (Marek)
++ Move D-Bus conf file to $(datadir)/dbus-1/system.d (worldofpeace)
++ Don't compare signed and unsigned int (Guido Günther)
++ Add default statements to silence compiler warnings (Guido Günther)
++ Remove obsolete [encoding: UTF-8] from POTFILES.in (Marek)
++ Add Code of Conduct (Marek)
++ Update README and HACKING files (Marek)
++ New/updated translations: af, ast, cs, et, fi, fur, he, hr, kk, lt, si, tr
+
+=============
 Version 0.2.6
 =============
 
