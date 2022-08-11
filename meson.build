@@ -1,6 +1,6 @@
 project ('cups-pk-helper',
          'c',
-         version: '0.2.7',
+         version: '0.2.8',
          # Debian uses meson 0.49.2 in stable currently.
          meson_version : '>= 0.49.2',
          license: 'GPLv2+')
