@@ -19,6 +19,8 @@ gobject2_dep = dependency ('gobject-2.0', version : glib2_req)
 polkit_dep = dependency ('polkit-gobject-1', version : '>= 0.97')
 cups_dep = dependency ('cups', version : '>= 1.6')
 pappl_dep = dependency ('pappl', version : '>=1.0')
+avahi_client_dep = dependency('avahi-client', version:'>=0.8')
+avahi_glib_dep = dependency('avahi-glib', version:'>=0.8')
 
 subdir ('po')
 subdir ('src')

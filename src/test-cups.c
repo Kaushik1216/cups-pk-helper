@@ -35,14 +35,14 @@ main (int argc, char **argv)
 
         if (cups == NULL)
                 return 1;
-
+        int x = printer_app_discovery();
         //if (cph_cups_add_printer (cups, "MyPrinter", "smb://really/cool", "HP/Business_Inkjet_2200-chp2200.ppd.gz", "This is my printer", "At home")) {
         //if (cph_cups_printer_delete (cups, "MyPrinter")) {
-        if (cph_cups_printer_class_set_job_sheets (cups, "DesignJet-650C", "none", "none")) {
-                g_print ("worked\n");
-        } else {
-                g_print ("ouch: %s\n", cph_cups_last_status_to_string (cups));
-        }
+        // if (cph_cups_printer_class_set_job_sheets (cups, "DesignJet-650C", "none", "none")) {
+        //         g_print ("worked\n");
+        // } else {
+        //         g_print ("ouch: %s\n", cph_cups_last_status_to_string (cups));
+        // }
 
         g_object_unref (cups);
 

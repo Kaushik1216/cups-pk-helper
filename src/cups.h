@@ -66,6 +66,7 @@ gboolean cph_cups_is_class (CphCups    *cups,
 
 char *cph_cups_printer_get_uri (CphCups    *cups,
                                 const char *printer_name);
+int printer_app_discovery();
 
 gboolean cph_cups_is_printer_local (CphCups    *cups,
                                     const char *printer_name);
