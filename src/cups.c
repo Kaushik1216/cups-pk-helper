@@ -1451,8 +1451,7 @@ typedef struct {
 } CphCupsGetDevices;
 
 static void
-_cph_cups_get_devices_cb (bool        device_printer_application_missing,
-                          const char *device_class,
+_cph_cups_get_devices_cb (const char *device_class,
                           const char *device_id,
                           const char *device_info,
                           const char *device_make_and_model,
@@ -1503,12 +1502,6 @@ _cph_cups_get_devices_cb (bool        device_printer_application_missing,
                 g_variant_builder_add (data->builder, "{ss}",
                                        key, device_location);
                 g_free (key);
-        }
-        if(device_printer_application_missing){
-                key = g_strdup_printf ("device_printer_application_missing:%d",data->iter);
-                g_variant_builder_add (data->builder, "{ss}",
-                                        key, "true");
-                g_free(key);
         }
         data->iter++;
 }
@@ -1714,19 +1707,35 @@ fail:
 }
 
 static void 
-_cph_cups_pappl_device_err_cb(const char *message, CphCups *cups)
-{        _cph_cups_set_internal_status( cups, 
+_cph_cups_pappl_device_err_cb(const char *message,
+                              void  *data)
+{        
+        CphCups *cups = data;
+        _cph_cups_set_internal_status( cups, 
                           g_strdup_printf("%s",message));
         return;
 }
 
 static bool
-_cph_cups_pappl_device_cb(const char *device_info,const char *device_uri,const char *device_id,void *data)
+_cph_cups_pappl_device_cb(const char *device_info,
+                          const char *device_uri,
+                          const char *device_id,
+                          void *user_data)
 {
-        (void)data;
-    _cph_cups_get_devices_cb( false, NULL, device_id, device_info, NULL, device_uri, NULL, NULL);
+        CphCupsGetDevices *data = user_data;
+        char              *key;
+
+        if(data == NULL) return FALSE;
+        if (data->limit > 0 && data->iter >= data->limit)
+                return FALSE;
+
+        key = g_strdup_printf ("device_printer_application_missing:%d",data->iter);
+                g_variant_builder_add (data->builder, "{ss}",
+                                        key, "true");
+                g_free(key);
+    _cph_cups_get_devices_cb( NULL, device_id, device_info, NULL, device_uri, NULL, NULL);
    
-   return (false);
+   return FALSE;
 }
 
 int _parse_app_devices( CphCups *cups,
@@ -1742,87 +1751,10 @@ int _parse_app_devices( CphCups *cups,
 	         strcpy(device_uri,buf);
 
                  device_uri[strlen(device_uri) - 1] = '\0';                
-                _cph_cups_get_devices_cb( true, NULL, device_id, NULL, NULL, device_uri, NULL, NULL);
+                _cph_cups_get_devices_cb( NULL, device_id, NULL, NULL, device_uri, NULL, NULL);
           }
 
           return 0;     
-}
-
-int 
-_parse_lp_devices( CphCups  *cups,
-                   CphCupsGetDevices *data,
-                   char*     cmd,
-                   FILE      *fp,
-                   int       *count 
-                  )
-{
-        char     buf[2048];
-        char     *newline,
-                 uri[1024],
-                 info[1024],
-                 class[1024],
-                 id[1024],
-                 mmodel[1024],
-                 location[1024];        
-
-        while(fgets(buf, sizeof(buf), fp)){
-
-	     // device-uri
-			if((newline = strstr(buf,"uri = ")) != NULL)
-			  {
-			    strcpy(uri,newline+6);
-                            uri[strlen(uri) - 1] = '\0';
-			  }
-             // device-class
-			else if((newline = strstr(buf,"class = ")) != NULL)
-			  {
-			    strcpy(class,newline+8);
-                            class[strlen(class) - 1] = '\0';
-			  }
-             // device-info
-		        else if((newline = strstr(buf,"info = ")) != NULL)
-			  {
-			    strcpy(info,newline+7);
-                            info[strlen(info) - 1] = '\0';
-			  }
-             // device make-and-model
-			else if((newline = strstr(buf,"make-and-model = ")) != NULL)
-			  {
-			     strcpy(mmodel,newline+17);
-                             mmodel[strlen(mmodel) - 1] = '\0';
-			  }
-	     // device device-id
-			else if((newline = strstr(buf,"device-id = ")) != NULL)
-			  {
-			    strcpy(id,newline+12);
-                            id[strlen(id) - 1] = '\0';
-			  }
-	     // device location
-			else if((newline = strstr(buf,"location = ")) != NULL)
-			{
-			   strcpy(location,newline+11);
-			   location[strlen(location) - 1] = '\0';
-			    
-                            if(strncmp(mmodel,"Unknown",7) == 0)
-			    {
-                             _cph_cups_set_internal_status( cups, 
-                             g_strdup_printf("Non-device output line from %s",info));
-                             continue;
-                            }
-                            
-                            _cph_cups_get_devices_cb(false, class, id, info, mmodel, uri, location, data);	
-			}   
-                        else
-                        {
-                             _cph_cups_set_internal_status( cups, 
-                             g_strdup_printf("Non familiar output line from lpinfo."));
-                             return (1);
-                        }
-                    *count++;	
-		}
-        pclose(fp);
-
-        return 0;
 }
 
 static gboolean
@@ -1835,10 +1767,10 @@ _cph_cups_devices_get (CphCups           *cups,
                        int                len_exclude,
                        CphCupsGetDevices *data)
 {
+        ipp_status_t            retval;
         int                     timeout_param = CUPS_TIMEOUT_DEFAULT;  
         char                    *include_schemes_param;
         char                    *exclude_schemes_param;
-        int                     count;
         CphAvahiGetServices     *userdata = malloc(sizeof(CphAvahiGetServices));
         FILE*                   fp;
         
@@ -1855,12 +1787,14 @@ _cph_cups_devices_get (CphCups           *cups,
         else
                 exclude_schemes_param = g_strdup (CUPS_EXCLUDE_NONE);
 
-        // retval = cupsGetDevices (cups->priv->connection,   /* Deprecated */
-        //                          timeout_param, 
-        //                          include_schemes_param,
-        //                          exclude_schemes_param,
-        //                          _cph_cups_get_devices_cb,
-        //                          data);
+        // Discovering devices via lpinfo   
+
+        retval = cupsGetDevices (cups->priv->connection,   
+                                 timeout_param, 
+                                 include_schemes_param,
+                                 exclude_schemes_param,
+                                 _cph_cups_get_devices_cb,
+                                 data);
         userdata->iter_printer_app_port = 0;
         userdata->printer_app_port = g_variant_builder_new (G_VARIANT_TYPE ("a{ss}"));
         GVariant *printer_app_port = NULL;
@@ -1882,23 +1816,6 @@ _cph_cups_devices_get (CphCups           *cups,
    	//   { 
                 
         //   }         
-             
-        // Discovering devices via lpinfo -l -v     
-        if((fp = exec_command(cups,"lpinfo -l -v")) == NULL)
-        {    
-                return FALSE;
-        }
-
-        if(_parse_lp_devices( cups, data, "lpinfo", fp , &count ))
-         {
-                _cph_cups_set_internal_status( cups, 
-                              g_strdup_printf("Couldn't read output from lpinfo."));
-                return FALSE;          
-         } 
-         
-         _cph_cups_set_internal_status( cups, 
-                              g_strdup_printf("lpinfo discovered %d devices.",count));
-
          
         // Discovering devices via printer applications 
         // GHashTableIter iter;
@@ -1929,7 +1846,13 @@ _cph_cups_devices_get (CphCups           *cups,
                           _cph_cups_pappl_device_err_cb,
                           cups );
            
-		
+	
+        if (retval != IPP_OK) {
+                _cph_cups_set_internal_status (cups,
+                                               "Cannot get devices.");
+                // return FALSE;
+        }
+
         g_free (include_schemes_param);
         g_free (exclude_schemes_param);
         
