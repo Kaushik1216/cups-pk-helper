@@ -39,18 +39,19 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 
-#include <avahi-client/client.h>
-#include <avahi-client/lookup.h>
-#include <avahi-common/error.h>
-#include <avahi-common/timeval.h>
-#include <avahi-common/simple-watch.h>
-#include <avahi-common/malloc.h>
-#include <avahi-glib/glib-watch.h>
-#include <avahi-glib/glib-malloc.h>
+#define AVAHI_IF_UNSPEC -1
+#define AVAHI_PROTO_INET 0
+#define AVAHI_PROTO_INET6 1
+#define AVAHI_PROTO_UNSPEC -1
+#define AVAHI_BUS "org.freedesktop.Avahi"
+#define AVAHI_SERVER_IFACE "org.freedesktop.Avahi.Server"
+#define AVAHI_SERVICE_BROWSER_IFACE "org.freedesktop.Avahi.ServiceBrowser"
+#define AVAHI_SERVICE_RESOLVER_IFACE "org.freedesktop.Avahi.ServiceResolver"
 
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <glib/gi18n.h>
+#include <gio/gio.h>
 
 #include <cups/adminutil.h>
 #include <cups/cups.h>
@@ -1505,207 +1506,441 @@ _cph_cups_get_devices_cb (const char *device_class,
         }
         data->iter++;
 }
+typedef struct {
+        GDBusConnection     *dbus_connection;
+        guint                avahi_service_browser_subscription_id;
+        guint                avahi_service_browser_subscription_ids[2];
+        char                 *avahi_service_browser_paths[2];
+        GCancellable         *avahi_cancellable;
+        guint                 unsubscribe_general_subscription_id;
+        GList                *services;
+        CphCupsGetDevices    *cups_devices;
+}Avahi;
 
-typedef struct{
-        AvahiClient *client;
-        CphCups *cups;
-        GMainLoop *loop;
-        GVariantBuilder *printer_app_port;
-        int iter_printer_app_port;
-}CphAvahiGetServices;
+typedef struct
+{
+  char                *device_uri;
+  char                *location;
+  char                *address;
+  char                *hostname;
+  int                  port;
+  char                *printer_app_name;
+  char                *name;
+  char                *resource_path;
+  char                *type;
+  char                *domain;
+  char                *UUID;
+  Avahi               *Avahidata
+} AvahiConnectionTestData;
 
-FILE* exec_command (CphCups  *cups, 
-                    char*     cmd)
-{       
-        char*      error;
-        FILE* fp; 
-    
-        if((fp = popen(cmd,"r")) == NULL)
+static void
+avahi_connection_test_cb (GObject      *source_object,
+                          GAsyncResult *res,
+                          gpointer      user_data)
+{
+  AvahiConnectionTestData *data = (AvahiConnectionTestData *) user_data;
+  GSocketConnection       *connection;
+  GError                  *error = NULL;
+
+  connection = g_socket_client_connect_to_host_finish (G_SOCKET_CLIENT (source_object),
+                                                       res,
+                                                       &error);
+  g_object_unref (source_object);
+
+  if (connection != NULL)
+    {
+      g_io_stream_close (G_IO_STREAM (connection), NULL, NULL);
+      g_object_unref (connection);
+      _cph_cups_get_devices_cb(data->address,NULL,data->location,data->hostname,"ipp://",data->name,data->Avahidata->cups_devices);
+      g_list_append(data->Avahidata->services,data);
+    }
+  else
+    {
+       g_warning ("CUPS Backend: Can not connect to %s: %s\n",
+                           data->address,
+                           error->message);
+      g_error_free (error);
+    }
+
+  g_free (data->location);
+  g_free (data->address);
+  g_free (data->hostname);
+  g_free (data->printer_app_name);
+  g_free (data->name);
+  g_free (data->resource_path);
+  g_free (data->type);
+  g_free (data->domain);
+  g_free (data->device_uri);
+  g_free (data);
+}
+
+static gboolean
+avahi_txt_get_key_value_pair (const char   *entry,
+                              char        **key,
+                              char        **value)
+{
+  const char *equal_sign;
+
+  *key = NULL;
+  *value = NULL;
+
+  if (entry != NULL)
+    {
+      /* See RFC 6763 section 6.3 */
+      equal_sign = strstr (entry, "=");
+
+      if (equal_sign != NULL)
         {
-          error = g_strdup_printf ("Failed to run command %s.\npopen couldn't run.",cmd);
-         _cph_cups_set_internal_status(cups,error);
-         g_free (error);
-        }
-    
-        return fp;
-}
+          *key = g_strndup (entry, equal_sign - entry);
+          *value = g_strdup (equal_sign + 1);
 
-int 
-_cph_cups_get_printer_app_cb( const char  *name,
-                              uint16_t    port,
-                              void        *userdata )
-{
-        char                    buf[2048],
-                                path[2048],
-                                *newline,
-                                pid[20];
-        FILE                    *lsof_cmd;
-        CphAvahiGetServices     *data;
-
-        data = userdata;
-
-        char *cmd = g_strdup_printf("lsof -F -n -i :%u",port);
-        
-        if((lsof_cmd = exec_command(data->cups,cmd)) == NULL){
-                char *message = g_strdup_printf("Couldn't get process ID for the Printer Application.\n");
-                _cph_cups_set_internal_status( data->cups, 
-                          g_strdup_printf("%s",message));
-               g_free(message);
-               return 1;
+          return TRUE;
         }
-        
-        fgets(buf, sizeof(buf), lsof_cmd);
-        
-        if((newline = strstr(buf,"p")) == NULL){
-                char *message = g_strdup_printf("Unknown output line from lsof.\n");
-                _cph_cups_set_internal_status( data->cups, 
-                          g_strdup_printf("%s",message));
-               g_free(message);
-               return 1;
-        }
-        strcpy(pid,newline+1);
-        pid[strlen(pid) - 1] = '\0';
-        g_free(cmd);
-        
-        cmd = g_strdup_printf("/proc/%s/exe",pid);
-        
-        if(readlink(cmd,path, sizeof(buf)) == -1){
-                char *message = g_strdup_printf("Error while fetching path for Printer Application.\n");
-                _cph_cups_set_internal_status( data->cups, 
-                          g_strdup_printf("%s",message));
-               g_free(message);
-               return 1;
-        }
-        g_free(cmd);
-        return 0;
-}
+    }
 
-static void resolve_callback(   AvahiServiceResolver *r,
-                                AVAHI_GCC_UNUSED AvahiIfIndex interface,
-                                AVAHI_GCC_UNUSED AvahiProtocol protocol,
-                                AvahiResolverEvent event,
-                                const char *name,
-                                const char *type,
-                                const char *domain,
-                                const char *host_name,
-                                const AvahiAddress *address,
-                                uint16_t port,
-                                AvahiStringList *txt,
-                                AvahiLookupResultFlags flags,
-                                AVAHI_GCC_UNUSED CphAvahiGetServices userdata) 
-{
-
-        assert(r);
-        switch (event) {
-            case AVAHI_RESOLVER_FAILURE:
-                break;
-            case AVAHI_RESOLVER_FOUND: {
-                char a[AVAHI_ADDRESS_STR_MAX], *t;
-                fprintf(stderr, "Service '%s' of type '%s' in domain '%s':\n", name, type, domain);
-                avahi_address_snprint(a, sizeof(a), address);
-                t = avahi_string_list_to_string(txt);
-                 fprintf(stderr,
-                        "\t%s:%u (%s)\n",
-                        host_name, port ,a);
-                gchar *app = g_strdup_printf ("%s:%d",name,userdata.iter_printer_app_port);
-                gchar *port_str = g_strdup_printf ("%u",port);
-                g_variant_builder_add (userdata.printer_app_port, "{ss}",
-                                        app, port_str);
-                avahi_free(t);
-            }
-        }
-        avahi_service_resolver_free(r);
-}       
-
-static void browse_callback(
-        AvahiServiceBrowser *b,
-        AvahiIfIndex interface,
-        AvahiProtocol protocol,
-        AvahiBrowserEvent event,
-        const char *name,
-        const char *type,
-        const char *domain,
-        AVAHI_GCC_UNUSED AvahiLookupResultFlags flags,
-        void* userdata) {
-        AvahiClient *c = ((CphAvahiGetServices*)userdata)->client;
-        assert(b);
-        switch (event) {
-            case AVAHI_BROWSER_FAILURE:
-                fprintf(stderr, "(Browser) %s\n", avahi_strerror(avahi_client_errno(avahi_service_browser_get_client(b))));
-                 g_main_loop_quit (((CphAvahiGetServices*)userdata)->loop);
-                return;
-            case AVAHI_BROWSER_NEW:
-                fprintf(stderr, "(Browser) NEW: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
-                if (!(avahi_service_resolver_new(c, interface, protocol, name, type, domain, AVAHI_PROTO_UNSPEC, 0, resolve_callback, userdata)))
-                    fprintf(stderr, "Failed to resolve service '%s': %s\n", name, avahi_strerror(avahi_client_errno(c)));
-                break;
-            case AVAHI_BROWSER_REMOVE:
-                fprintf(stderr, "(Browser) REMOVE: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
-                break;
-            case AVAHI_BROWSER_ALL_FOR_NOW:
-                 g_main_loop_quit (((CphAvahiGetServices*)userdata)->loop);
-            case AVAHI_BROWSER_CACHE_EXHAUSTED:
-                fprintf(stderr, "(Browser) %s\n", event == AVAHI_BROWSER_CACHE_EXHAUSTED ? "CACHE_EXHAUSTED" : "ALL_FOR_NOW");
-                break;
-        }
+  return FALSE;
 }
 
 static void
-avahi_client_callback (AVAHI_GCC_UNUSED AvahiClient *client, AvahiClientState state, void *userdata)
+avahi_service_resolver_cb (GVariant*     output,
+                           gpointer      user_data)
 {
-        GMainLoop *loop = ((CphAvahiGetServices*)userdata)->loop;
-        g_message ("Avahi Client State Change: %d", state);
-        if (state == AVAHI_CLIENT_FAILURE)
+  AvahiConnectionTestData *data;
+  Avahi                   *backend;
+  const char              *name;
+  const char              *hostname;
+  const char              *type;
+  const char              *domain;
+  const char              *address;
+//   GVariant                *output;
+  GVariant                *txt;
+  GVariant                *child;
+  guint32                  flags;
+  guint16                  port;
+  GError                  *error = NULL;
+  GList                   *iter;
+  char                    *tmp;
+  char                    *printer_name;
+  char                    *key;
+  char                    *value;
+  gsize                    length;
+  int                      interface;
+  int                      protocol;
+  int                      aprotocol;
+  int                      i;
+
+  if (output)
+    {
+      backend = user_data;
+
+      g_variant_get (output, "(ii&s&s&s&si&sq@aayu)",
+                     &interface,
+                     &protocol,
+                     &name,
+                     &type,
+                     &domain,
+                     &hostname,
+                     &aprotocol,
+                     &address,
+                     &port,
+                     &txt,
+                     &flags);
+
+      data = g_new0 (AvahiConnectionTestData, 1);
+
+      for (i = 0; i < g_variant_n_children (txt); i++)
         {
-            g_message ("Disconnected from the Avahi Daemon: %s", avahi_strerror(avahi_client_errno(client)));
-            g_main_loop_quit (loop);
+          child = g_variant_get_child_value (txt, i);
+
+          length = g_variant_get_size (child);
+          if (length > 0)
+            {
+              tmp = g_strndup (g_variant_get_data (child), length);
+              g_variant_unref (child);
+
+              if (!avahi_txt_get_key_value_pair (tmp, &key, &value))
+                {
+                  g_free (tmp);
+                  continue;
+                }
+
+              if (g_strcmp0 (key, "rp") == 0)
+                {
+                  data->resource_path = g_strdup (value);
+                }
+              else if (g_strcmp0 (key, "note") == 0)
+                {
+                  data->location = g_strdup (value);
+                }
+              else if (g_strcmp0 (key, "UUID") == 0)
+                {
+                  if (*value != '\0')
+                    data->UUID = g_strdup (value);
+                }
+
+              g_clear_pointer (&key, g_free);
+              g_clear_pointer (&value, g_free);
+              g_free (tmp);
+            }
+          else
+            {
+              g_variant_unref (child);
+            }
         }
-}
-int printer_app_discovery(CphCups                     *cups,
-                          CphAvahiGetServices         userdata)
-{
-        const AvahiPoll         *poll_api;
-        int                      error;
-        AvahiGLibPoll           *glib_poll;
-        AvahiClient             *client;
-        AvahiServiceBrowser     *sb = NULL;
-        GMainLoop               *loop = NULL;
-        avahi_set_allocator (avahi_glib_allocator ());
-        loop = g_main_loop_new (NULL, FALSE);
-        glib_poll = avahi_glib_poll_new (NULL, G_PRIORITY_DEFAULT);
-        poll_api = avahi_glib_poll_get (glib_poll);
-        client = avahi_client_new (poll_api,            /* AvahiPoll object from above */
-                                   0,
-                avahi_client_callback,                  /* Callback function for Client state changes */
-                loop,                                   /* User data */
-                &error);                                /* Error return */
-        if (client == NULL)
+
+      if (data->resource_path != NULL)
         {
-            g_warning ("Error initializing Avahi: %s", avahi_strerror (error));
-            goto fail;
+          /*
+           * Create name of temporary queue from the name of the discovered service.
+           * This emulates the way how CUPS creates the name.
+           */
+          printer_name = g_strdup_printf ("%s", name);
+
+          data->printer_app_name = printer_name;
+
+
+          g_free (printer_name);
+          iter = g_list_find_custom (backend->services, data->printer_app_name, (GCompareFunc) g_strcmp0);
+          if (iter != NULL)
+            {
+              g_free (iter->data);
+              backend->services = g_list_delete_link (backend->services, iter);
+            }
+
+          data->address = g_strdup (address);
+          data->hostname = g_strdup (hostname);
+          data->port = port;
+          data->name = g_strdup (name);
+          data->type = g_strdup (type);
+          data->domain = g_strdup (domain);
+        //    g_socket_client_connect_to_host_async (g_socket_client_new (),
+        //                                          address,
+        //                                          port,
+        //                                          backend->avahi_cancellable,
+        //                                          avahi_connection_test_cb,
+        //                                          data);
         }
-        
-        if (!client) {
-            fprintf(stderr, "Failed to create client: %s\n", avahi_strerror(error));
-            goto fail;
+      else
+        {
+          g_free (data->printer_app_name);
+          g_free (data->location);
+          g_free (data);
         }
-        //  CphAvahiGetServices  avahi;
-            userdata.client = client;
-            userdata.loop = loop;
-            userdata.cups = cups;
-         if (!(sb = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, "_ipps-system._tcp", NULL, 0, browse_callback, &userdata))) {
-            fprintf(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
-            goto fail;
-        }
-        g_main_loop_run (loop);
-fail:
-    /* Clean up */
-    g_main_loop_unref (loop);
-    avahi_client_free (client);
-    avahi_glib_poll_free (glib_poll);
-    return 0;
+
+      g_variant_unref (txt);
+      g_variant_unref (output);
+    }
+  else
+    {
+      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        g_warning ("%s", error->message);
+      g_error_free (error);
+    }
 }
 
+static gboolean
+unsubscribe_general_subscription_cb (gpointer user_data)
+{
+  Avahi *printer_app_backend = user_data;
+
+  g_dbus_connection_signal_unsubscribe (printer_app_backend->dbus_connection,
+                                        printer_app_backend->avahi_service_browser_subscription_id);
+  printer_app_backend->avahi_service_browser_subscription_id = 0;
+  printer_app_backend->unsubscribe_general_subscription_id = 0;
+
+  return G_SOURCE_REMOVE;
+}
+
+static void
+avahi_service_browser_signal_handler (GDBusConnection *connection,
+                                      const char      *sender_name,
+                                      const char      *object_path,
+                                      const char      *interface_name,
+                                      const char      *signal_name,
+                                      GVariant        *parameters,
+                                      gpointer         user_data)
+{
+  Avahi               *backend;
+  char                *name;
+  char                *type;
+  char                *domain;
+  guint                flags;
+  int                  interface;
+  int                  protocol;
+
+  backend = user_data;    
+
+  if (g_strcmp0 (signal_name, "ItemNew") == 0)
+    {
+      g_variant_get (parameters, "(ii&s&s&su)",
+                     &interface,
+                     &protocol,
+                     &name,
+                     &type,
+                     &domain,
+                     &flags);
+
+      if (g_strcmp0 (type, "_ipps-system._tcp") == 0)
+        {
+          GVariant *output = g_dbus_connection_call_sync (backend->dbus_connection,
+                                  AVAHI_BUS,
+                                  "/",
+                                  AVAHI_SERVER_IFACE,
+                                  "ResolveService",
+                                  g_variant_new ("(iisssiu)",
+                                                 interface,
+                                                 protocol,
+                                                 name,
+                                                 type,
+                                                 domain,
+                                                 AVAHI_PROTO_UNSPEC,
+                                                 0),
+                                  G_VARIANT_TYPE ("(iissssisqaayu)"),
+                                  G_DBUS_CALL_FLAGS_NONE,
+                                  -1,
+                                  backend->avahi_cancellable,
+                                  NULL);
+        avahi_service_resolver_cb(output,user_data);
+        }
+    }
+  else if (g_strcmp0 (signal_name, "ItemRemove") == 0)
+    {
+      g_variant_get (parameters, "(ii&s&s&su)",
+                     &interface,
+                     &protocol,
+                     &name,
+                     &type,
+                     &domain,
+                     &flags);
+
+      if (g_strcmp0 (type, "_ipps-system._tcp") == 0)
+        {
+        /* To be dealt for removing printer application */
+        }
+    }
+}
+
+
+static void
+avahi_service_browser_new_cb (GVariant*     output,
+                              gpointer      user_data)
+{
+  Avahi               *printer_app_backend;
+  GError              *error = NULL;
+  int                  i;
+
+  if (output)
+    {
+      printer_app_backend = user_data;
+      i = printer_app_backend->avahi_service_browser_paths[0] ? 1 : 0;
+
+      g_variant_get (output, "(o)", &printer_app_backend->avahi_service_browser_paths[i]);
+      printer_app_backend->avahi_service_browser_subscription_ids[i] =
+        g_dbus_connection_signal_subscribe (printer_app_backend->dbus_connection,
+                                            NULL,
+                                            AVAHI_SERVICE_BROWSER_IFACE,
+                                            NULL,
+                                            printer_app_backend->avahi_service_browser_paths[i],
+                                            NULL,
+                                            G_DBUS_SIGNAL_FLAGS_NONE,
+                                            avahi_service_browser_signal_handler,
+                                            user_data,
+                                            NULL);
+
+      /*
+       * The general subscription for all service browsers is not needed
+       * now because we are already subscribed to service browsers
+       * specific to _ipps-system._tcp services.
+       */
+      if (printer_app_backend->avahi_service_browser_paths[0] &&
+          printer_app_backend->avahi_service_browser_paths[1] &&
+          printer_app_backend->avahi_service_browser_subscription_id > 0)
+        {
+          /* We need to unsubscribe in idle since signals in queue destined for emit
+           * are emitted in idle and check whether the subscriber is still subscribed.
+           */
+          printer_app_backend->unsubscribe_general_subscription_id = g_idle_add (unsubscribe_general_subscription_cb, printer_app_backend);
+        }
+
+      g_variant_unref (output);
+    }
+  else
+    {
+      /*
+       * The creation of ServiceBrowser fails with G_IO_ERROR_DBUS_ERROR
+       * if Avahi is disabled.
+       */
+      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_DBUS_ERROR) &&
+          !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        g_warning ("%s", error->message);
+      g_error_free (error);
+    }
+}
+
+static void
+avahi_create_browsers( gpointer    user_data)
+{ 
+  Avahi               *printer_app_backend;  
+  printer_app_backend = user_data;
+
+  /*
+   * We need to subscribe to signals of service browser before
+   * we actually create it because it starts to emit them right
+   * after its creation.
+   */
+  printer_app_backend->avahi_service_browser_subscription_id =
+    g_dbus_connection_signal_subscribe  (printer_app_backend->dbus_connection,
+                                         NULL,
+                                         AVAHI_SERVICE_BROWSER_IFACE,
+                                         NULL,
+                                         NULL,
+                                         NULL,
+                                         G_DBUS_SIGNAL_FLAGS_NONE,
+                                         avahi_service_browser_signal_handler,
+                                         printer_app_backend,
+                                         NULL);
+  /*
+   * Create service browser for _ipps-system._tcp services.
+   */
+  GVariant* output = g_dbus_connection_call_sync (printer_app_backend->dbus_connection,
+                          AVAHI_BUS,
+                          "/",
+                          AVAHI_SERVER_IFACE,
+                          "ServiceBrowserNew",
+                          g_variant_new ("(iissu)",
+                                         AVAHI_IF_UNSPEC,
+                                         AVAHI_PROTO_UNSPEC,
+                                         "_ipps-system._tcp",
+                                         "",
+                                         0),
+                          G_VARIANT_TYPE ("(o)"),
+                          G_DBUS_CALL_FLAGS_NONE,
+                          -1,
+                          printer_app_backend->avahi_cancellable,
+                          NULL);
+                          
+        avahi_service_browser_new_cb(output, user_data);
+
+        return;
+}
+
+void 
+printer_app_discovery()
+{
+        Avahi *printer_app_backend = g_new0 (Avahi,1);
+        printer_app_backend->avahi_cancellable = g_cancellable_new ();
+        printer_app_backend->dbus_connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, printer_app_backend->avahi_cancellable, NULL);
+        avahi_create_browsers(printer_app_backend);
+        /* For Testing Purposes */
+       
+        GList* r = g_list_first(printer_app_backend->services);
+        if(r != NULL)
+         {
+               AvahiConnectionTestData *data = r->data;
+               printf(data->hostname);
+         }
+        return;
+}
 static void 
 _cph_cups_pappl_device_err_cb(const char *message,
                               void  *data)
@@ -1771,7 +2006,6 @@ _cph_cups_devices_get (CphCups           *cups,
         int                     timeout_param = CUPS_TIMEOUT_DEFAULT;  
         char                    *include_schemes_param;
         char                    *exclude_schemes_param;
-        CphAvahiGetServices     *userdata = malloc(sizeof(CphAvahiGetServices));
         FILE*                   fp;
         
         if (timeout > 0)
@@ -1795,50 +2029,13 @@ _cph_cups_devices_get (CphCups           *cups,
                                  exclude_schemes_param,
                                  _cph_cups_get_devices_cb,
                                  data);
-        userdata->iter_printer_app_port = 0;
-        userdata->printer_app_port = g_variant_builder_new (G_VARIANT_TYPE ("a{ss}"));
-        GVariant *printer_app_port = NULL;
         
-        if(printer_app_discovery( cups, *userdata))
-        {
-                _cph_cups_set_internal_status(cups,g_strdup_printf("Error while discovering Printer Application."));
-                return (FALSE);
-        }        
-        printer_app_port = g_variant_builder_end(userdata->printer_app_port);
-        g_variant_builder_unref(userdata->printer_app_port);
-
-        // GHashTable *printer_apps = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free); 
-        // GHashTable *printer_app_paths = g_hash_table_new_full(g_str_hash,g_str_equal,g_free,g_free);
-        // GHashTableIter iter;
-        // gpointer app, port;
-        // g_hash_table_iter_init (&iter, printer_apps);
-        // while(g_hash_table_iter_next(&iter, &app, &port))
-   	//   { 
-                
-        //   }         
-         
-        // Discovering devices via printer applications 
-        // GHashTableIter iter;
-        // gpointer app, path;
-        // g_hash_table_iter_init (&iter, userdata->printer_app_path);
-        // while(g_hash_table_iter_next(&iter, &app, &path))
-   	//   { 
-        //      char *cmd = g_strdup_printf("%s devices",(char*)path); 
-             
-        //      if((fp = exec_command(cups,"cmd")) == NULL)
-        //      {
-        //         return FALSE;
-        //      }
-
-        //      if(_parse_app_devices(cups, data, fp))
-        //      {
-        //          _cph_cups_set_internal_status( cups, 
-        //                          g_strdup_printf("Error while getting devices from %s.",(char*)app));
-        //          return FALSE;
-        //      }
-
-        //      g_free(cmd);
-	//   }
+        // Avahi *printer_app_disc = g_new (Avahi,1);
+        printer_app_discovery();
+        // {
+        //         _cph_cups_set_internal_status(cups,g_strdup_printf("Error while discovering Printer Application."));
+        //         return (FALSE);
+        // }        
 
          papplDeviceList( PAPPL_DEVTYPE_ALL,
                           _cph_cups_pappl_device_cb,                  
