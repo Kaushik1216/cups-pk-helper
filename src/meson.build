@@ -24,7 +24,7 @@ executable (
   cph_iface_mechanism_source,
   install: true,
   install_dir: join_paths (prefix, libexecdir),
-  dependencies : [glib2_dep, gio2_dep, gio_unix2_dep, polkit_dep, cups_dep, pappl_dep, avahi_client_dep, avahi_glib_dep]
+  dependencies : [glib2_dep, gio2_dep, gio_unix2_dep, polkit_dep, cups_dep, pappl_dep ]
 )
 
 
@@ -43,7 +43,7 @@ foreach test_name: tests
     test_name + '.c',
     cph_sources,
     cph_iface_mechanism_source,
-    dependencies: [glib2_dep, gobject2_dep, gio2_dep, gio_unix2_dep, cups_dep, pappl_dep, avahi_client_dep, avahi_glib_dep],
+    dependencies: [glib2_dep, gobject2_dep, gio2_dep, gio_unix2_dep, cups_dep, pappl_dep],
     c_args: ['-DG_DISABLE_DEPRECATED'])
   test (test_name, bin,
         env: ['G_TEST_SRCDIR=@0@'.format (meson.current_source_dir ()),

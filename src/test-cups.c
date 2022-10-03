@@ -23,32 +23,29 @@
 
 #include <glib.h>
 #include <glib-object.h>
+#include <gio/gio.h>
 
 #include "cups.h"
 
 int
 main (int argc, char **argv)
 {
-        // CphCups *cups;
+         CphCups *cups;
 
-        // cups = cph_cups_new ();
+        cups = cph_cups_new ();
 
-        // if (cups == NULL)
-        //         return 1;
-        // CphCupsGetDevices data;
-        // data.iter    = 0;
-        // data.limit   = -1;
-        // data.builder = g_variant_builder_new (G_VARIANT_TYPE ("a{ss}"));
-         printer_app_discovery();
+        if (cups == NULL)
+                return 1;
+
         //if (cph_cups_add_printer (cups, "MyPrinter", "smb://really/cool", "HP/Business_Inkjet_2200-chp2200.ppd.gz", "This is my printer", "At home")) {
         //if (cph_cups_printer_delete (cups, "MyPrinter")) {
-        // if (cph_cups_printer_class_set_job_sheets (cups, "DesignJet-650C", "none", "none")) {
-        //         g_print ("worked\n");
-        // } else {
-        //         g_print ("ouch: %s\n", cph_cups_last_status_to_string (cups));
-        // }
+        if (cph_cups_printer_class_set_job_sheets (cups, "DesignJet-650C", "none", "none")) {
+                g_print ("worked\n");
+        } else {
+                g_print ("ouch: %s\n", cph_cups_last_status_to_string (cups));
+        }
 
-        // g_object_unref (cups);
+        g_object_unref (cups);
 
         return 0;
 }
