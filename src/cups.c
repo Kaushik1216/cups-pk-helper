@@ -1548,49 +1548,46 @@ _cph_cups_get_printer_app_cb (gpointer        data,
                               pid[20];
         FILE                 *lsof_cmd;
         
-        char *cmd = g_strdup_printf ("lsof -F -n -i :%u",service->port);
+        char *cmd = g_strdup_printf ("lsof -F -n -i :%u", service->port);
         
         if ((lsof_cmd = popen (cmd, "r")) == NULL )
         {
                 char *message = g_strdup_printf ("Couldn't get process ID for the Printer Application.\n");
                 _cph_cups_set_internal_status( backend_data->cups, 
                           g_strdup_printf("%s",message));
-                g_message ("%s", message);
                 g_free (message);
 
                 goto exit;
         }
         
-        fgets(buf, sizeof(buf), lsof_cmd);
+        fgets (buf, sizeof(buf), lsof_cmd);
         
-        if ((newline = strstr(buf,"p")) == NULL)
+        if ((newline = strstr (buf,"p")) == NULL)
         {
-                char *message = g_strdup_printf("Unknown output line from lsof.\n");
-                _cph_cups_set_internal_status( backend_data->cups, 
-                          g_strdup_printf("%s",message));
-                g_message("%s",message);
-                g_free(message);
+                char *message = g_strdup_printf ("Unknown output line from lsof.\n");
+                _cph_cups_set_internal_status ( backend_data->cups, 
+                          g_strdup_printf ("%s",message));
+                g_free (message);
 
                 goto exit;
         }
 
-        strcpy(pid,newline+1);
+        strcpy (pid,newline+1);
         
         pid[strlen(pid) - 1] = '\0';
         
-        cmd = g_strdup_printf("/proc/%s/exe",pid);
+        cmd = g_strdup_printf ("/proc/%s/exe", pid);
         
-        if (readlink(cmd,path, sizeof(buf)) == -1)
+        if (readlink (cmd, path,  sizeof (buf)) == -1)
         {
-                char *message = g_strdup_printf("Error while fetching path for Printer Application.\n");
-                _cph_cups_set_internal_status( backend_data->cups, 
-                          g_strdup_printf("%s",message));
-                                g_message("%s",message);
-                g_free(message);
+                char *message = g_strdup_printf ("Error while fetching path for Printer Application.\n");
+                _cph_cups_set_internal_status ( backend_data->cups, 
+                          g_strdup_printf ("%s",message));
+                g_free (message);
                 
                 goto exit;
         }
-        service->binary_path = g_strdup_printf("%s",path);
+        service->binary_path = g_strdup_printf ("%s",path);
 
         exit:
         g_free(cmd);
@@ -1887,7 +1884,6 @@ avahi_create_browsers ( gpointer    user_data)
         /*
          * Create service browser for _ipps-system._tcp services.
          */
-        g_message("create browsers\n");
         GVariant* output = g_dbus_connection_call_sync (printer_app_backend->dbus_connection,
                                 AVAHI_BUS,
                                 "/",
