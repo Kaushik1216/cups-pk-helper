@@ -1536,65 +1536,6 @@ typedef struct
 
 } AvahiData;
 
-void 
-_cph_cups_get_printer_app_cb (gpointer        data,
-                              gpointer        user_data)
-{
-        AvahiData*            service = data;
-        Avahi*                backend_data = user_data;
-        char                  buf[2048],
-                              path[2048],
-                             *newline,
-                              pid[20];
-        FILE                 *lsof_cmd;
-        
-        char *cmd = g_strdup_printf ("lsof -F -n -i :%u", service->port);
-        
-        if ((lsof_cmd = popen (cmd, "r")) == NULL )
-        {
-                char *message = g_strdup_printf ("Couldn't get process ID for the Printer Application.\n");
-                _cph_cups_set_internal_status( backend_data->cups, 
-                          g_strdup_printf("%s",message));
-                g_free (message);
-
-                goto exit;
-        }
-        
-        fgets (buf, sizeof(buf), lsof_cmd);
-        
-        if ((newline = strstr (buf,"p")) == NULL)
-        {
-                char *message = g_strdup_printf ("Unknown output line from lsof.\n");
-                _cph_cups_set_internal_status ( backend_data->cups, 
-                          g_strdup_printf ("%s",message));
-                g_free (message);
-
-                goto exit;
-        }
-
-        strcpy (pid,newline+1);
-        
-        pid[strlen(pid) - 1] = '\0';
-        
-        cmd = g_strdup_printf ("/proc/%s/exe", pid);
-        
-        if (readlink (cmd, path,  sizeof (buf)) == -1)
-        {
-                char *message = g_strdup_printf ("Error while fetching path for Printer Application.\n");
-                _cph_cups_set_internal_status ( backend_data->cups, 
-                          g_strdup_printf ("%s",message));
-                g_free (message);
-                
-                goto exit;
-        }
-        service->binary_path = g_strdup_printf ("%s",path);
-
-        exit:
-        g_free(cmd);
-
-        return ;
-}
-
 typedef struct
 {
         CphCupsGetDevices *data;
@@ -1671,6 +1612,7 @@ avahi_service_resolver_cb (GVariant*     output,
                 data->hostname = g_strdup (hostname);
                 data->port = port;
                 data->name = g_strdup (name);
+                g_message ("%s\n", data->name);
                 data->type = g_strdup (type);
                 data->domain = g_strdup (domain);
 
@@ -1920,8 +1862,6 @@ printer_app_discovery (gpointer user_data)
 
         avahi_create_browsers (printer_app_backend);
 
-        g_list_foreach (printer_app_backend->services,(GFunc) _cph_cups_get_printer_app_cb, printer_app_backend);       
-
         return;
 }
 
@@ -2009,10 +1949,17 @@ _cph_cups_devices_get (CphCups           *cups,
                        CphCupsGetDevices *data)
 {
         ipp_status_t            retval;
+        ipp_t		        *request,		
+		                *response;		
+        ipp_attribute_t         *attr;		
+        http_t	                *http;			
         int                     timeout_param = CUPS_TIMEOUT_DEFAULT;  
-        char                    *include_schemes_param;
-        char                    *exclude_schemes_param;
-        FILE                    *fp;
+        char                    *include_schemes_param,
+                                *exclude_schemes_param,
+                                *device_info,
+                                *device_id,
+                                *device_name,
+                                *device_uri;
         if (timeout > 0)
                 timeout_param = timeout;
 
@@ -2035,28 +1982,62 @@ _cph_cups_devices_get (CphCups           *cups,
                                  _cph_cups_get_devices_cb,
                                  data);
 
+        // Discovering services via Avahi
         Avahi *printer_app_backend = g_new0 (Avahi,1);
         printer_app_backend -> cups = cups;
         printer_app_discovery (printer_app_backend);
 
-         for (int i = 0; i < g_list_length (printer_app_backend->services); i++)
-   	  { 
-             AvahiData *printer_app_data = g_list_nth_data (printer_app_backend->services,i); 
-             char *cmd = g_strdup_printf ("%s devices",printer_app_data->binary_path); 
-             
-             if ((fp = exec_command (cups,"cmd")) == NULL)
-             {
-                return FALSE;
-             }
+        for (int i = 0; i < g_list_length (printer_app_backend->services); i++)
+   	 { 
+               // Discovering devices via installed printer apps
+               AvahiData *printer_app_data = g_list_nth_data (printer_app_backend->services,i); 
+               http = httpConnect2(printer_app_data->hostname, printer_app_data->port, NULL, AF_UNSPEC,
+                                  HTTP_ENCRYPTION_IF_REQUESTED, 1, 30000, NULL);
 
-             if (_parse_app_devices (cups, data, fp))
-             {
-                 _cph_cups_set_internal_status ( cups, 
-                                 g_strdup_printf ("Error while getting devices from %s.",printer_app_data->binary_path));
-                 return FALSE;
-             }
+               request = ippNewRequest(IPP_OP_PAPPL_FIND_DEVICES);
+               ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_CHARSET, "attributes-charset", NULL, "utf-8");
+               ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_LANGUAGE, "attributes-natural-language", NULL, "en-GB");
+               ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "system-uri", NULL, "ipp://localhost/ipp/system");
+               ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "requesting-user-name", NULL, cupsUser());
+               response = cupsDoRequest(http, request, "/ipp/system");         
 
-             g_free (cmd);
+               if ((attr = ippFindAttribute(response, "smi55357-device-col", IPP_TAG_BEGIN_COLLECTION)) != NULL)
+                 {
+                   int	i,			
+               		num_devices = ippGetCount(attr);
+
+                   for (i = 0; i < num_devices; i ++)
+                   {
+                     ipp_t		*item = ippGetCollection(attr, i);
+               					// Device entry
+                     ipp_attribute_t	*item_attr;	// Device attr
+                     if ((item_attr = ippFindAttribute(item, "smi55357-device-uri", IPP_TAG_ZERO)) != NULL)
+                     {
+	                if ((item_attr = ippFindAttribute(item, "smi55357-device-info", IPP_TAG_ZERO)) != NULL)
+      	                  device_info = g_strdup(ippGetString(item_attr, 0, NULL));
+      	                if ((item_attr = ippFindAttribute(item, "smi55357-device-id", IPP_TAG_ZERO)) != NULL)
+      	                  device_id = g_strdup(ippGetString(item_attr, 0, NULL));
+                        if ((item_attr = ippFindAttribute(item, "smi55357-device-name", IPP_TAG_ZERO)) != NULL)
+      	                  device_name = g_strdup(ippGetString(item_attr, 0, NULL));
+                        if ((item_attr = ippFindAttribute(item, "smi55357-device-uri", IPP_TAG_ZERO)) != NULL)
+      	                  device_uri = g_strdup(ippGetString(item_attr, 0, NULL));
+
+                       _cph_cups_get_devices_cb (NULL, 
+                                                device_id,
+                                                device_info,
+                                                NULL,
+                                                device_uri,
+                                                NULL,
+                                                data);
+                        g_free (device_id);
+                        g_free (device_info);
+                        g_free (device_name);
+                        g_free (device_uri);
+                     }
+                   }
+                 }
+
+                ippDelete(response);                
 	  }
 
          pappl_data_callback *pappl_data = g_new0 (pappl_data_callback,1);
@@ -2079,7 +2060,7 @@ _cph_cups_devices_get (CphCups           *cups,
 
         g_free (include_schemes_param);
         g_free (exclude_schemes_param);
-        
+
         return TRUE;
 }
 
