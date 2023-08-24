@@ -42,6 +42,13 @@
       <arg name="devices"         direction="out" type="a{ss}"/>
     </method>
 
+    <method name="PrinterAppGet">
+     <annotation name="orgorg.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="timeout"         direction="in"  type="i"/>
+      <arg name="error"           direction="out" type="s"/>     
+      <arg name="apps"            direction="out" type="a{ss}"/>
+    </method>
+
     <!-- Methods for printers -->
 
     <method name="PrinterAdd">

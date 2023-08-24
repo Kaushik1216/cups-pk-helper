@@ -94,6 +94,10 @@ gboolean cph_cups_devices_get (CphCups            *cups,
                                const char *const  *exclude_schemes,
                                GVariant          **devices);
 
+gboolean cph_cups_printer_app_get (CphCups            *cups,
+                                   int                 timeout,
+                                   GVariant          **apps);
+                                   
 gboolean cph_cups_printer_add (CphCups    *cups,
                                const char *printer_name,
                                const char *printer_uri,

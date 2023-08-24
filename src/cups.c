@@ -1450,6 +1450,11 @@ typedef struct {
         GVariantBuilder *builder;
 } CphCupsGetDevices;
 
+typedef struct {
+        int              iter;
+        GVariantBuilder *builder;
+} CphCupsGetPrinterApps;
+
 static void
 _cph_cups_get_devices_cb (const char *device_class,
                           const char *device_id,
@@ -1877,7 +1882,7 @@ _cph_cups_pappl_device_err_cb (const char        *message,
 }
 
 static bool
-_cph_cups_pappl_device_cb(const char    *device_info,
+_cph_cups_pappl_device_cb (const char    *device_info,
                           const char    *device_uri,
                           const char    *device_id,
                           void          *user_data)
@@ -1921,21 +1926,39 @@ int _parse_app_devices (CphCups                 *cups,
           return 0;     
 }
 
-FILE* exec_command (CphCups  *cups, 
-                    char*     cmd)
-{       
-        char*      error;
-        FILE* fp; 
+static gboolean
+_cph_cups_printer_app_get (CphCups           *cups,
+                           int                timeout,
+                           CphCupsGetPrinterApps *data)
+{
 
-        if ((fp = popen (cmd,"r")) == NULL)
-        {
-          error = g_strdup_printf ("Failed to discover devices via %s.\npopen couldn't run.",cmd);
-          _cph_cups_set_internal_status (cups,error);
-          
-          g_free (error);
-        }
+        Avahi               *printer_app_backend;
+        char                *key;
 
-    return fp;
+        printer_app_backend = g_new0 (Avahi,1);
+        printer_app_backend -> cups = cups;
+        printer_app_discovery (printer_app_backend);
+
+        for (int i = 0; i < g_list_length (printer_app_backend->services); i++)
+   	 { 
+                AvahiData *printer_app_data = g_list_nth_data (printer_app_backend->services,i); 
+
+                if (printer_app_data->hostname && printer_app_data->hostname[0] != '\0') {
+                        key  = g_strdup_printf ("hostname:%d", data->iter);
+                        g_variant_builder_add (data->builder, "{ss}",
+                                               key, printer_app_data->hostname);
+                        g_free (key);
+                }
+        
+                if (printer_app_data->port > 0) {
+                        key  = g_strdup_printf ("port:%d", data->iter);
+                        g_variant_builder_add (data->builder, "{ss}",
+                                               key, printer_app_data->port);
+                        g_free (key);
+                }
+                data->iter++;
+         }
+
 }
 
 static gboolean
@@ -2045,22 +2068,22 @@ _cph_cups_devices_get (CphCups           *cups,
          pappl_data->data = data;
          g_timeout_add_seconds (10,pappl_timeout_cb,pappl_data);
          
-         papplDeviceList ( PAPPL_DEVTYPE_ALL,
+         papplDeviceList (PAPPL_DEVTYPE_ALL,
                           _cph_cups_pappl_device_cb,                  
-                           pappl_data,
+                          pappl_data,
                           _cph_cups_pappl_device_err_cb,
                           cups );
            
 	
-        if (retval != IPP_OK) {
-                _cph_cups_set_internal_status (cups,
-                                               "Cannot get devices.");
-                return FALSE;
-        }
+        // if (retval != IPP_OK) {
+        //         _cph_cups_set_internal_status (cups,
+        //                                        "Cannot get devices.");
+        //         return FALSE;
+        // }
 
         g_free (include_schemes_param);
         g_free (exclude_schemes_param);
-
+        
         return TRUE;
 }
 
@@ -2118,6 +2141,34 @@ cph_cups_devices_get (CphCups            *cups,
         g_variant_builder_unref (data.builder);
 
         return retval;
+}
+
+gboolean
+cph_cups_printer_app_get (CphCups            *cups,
+                          int                 timeout,
+                          GVariant          **apps)
+{
+        CphCupsGetPrinterApps   data;
+        gboolean                retval;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+        g_return_val_if_fail (apps != NULL, FALSE);
+
+        *apps = NULL;
+
+        data.iter    = 0;
+        data.builder = g_variant_builder_new (G_VARIANT_TYPE ("a{ss}"));
+
+        retval = _cph_cups_printer_app_get (cups,
+                                        timeout, 
+                                        &data);
+        if (retval)
+                *apps = g_variant_builder_end (data.builder);
+
+        g_variant_builder_unref (data.builder);
+
+        return retval;
+
 }
 
 /* Functions that work on a printer */

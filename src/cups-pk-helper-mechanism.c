@@ -709,6 +709,38 @@ cph_mechanism_devices_get (CphIfaceMechanism      *object,
 }
 
 static gboolean
+cph_mechanism_printer_app_get (CphIfaceMechanism      *object,
+                               GDBusMethodInvocation  *context,
+                               int                     timeout)
+{
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
+        GVariant     *devices = NULL;
+
+        _cph_mechanism_emit_called (mechanism);
+
+        if (!_check_polkit_for_action_v (mechanism, context,
+                                         "all-edit",
+                                         "printer-app-get",
+                                         NULL))
+                return TRUE;
+
+        // ret = cph_cups_devices_get (mechanism->priv->cups,
+        //                             timeout,
+        //                             &devices);
+
+        if (devices == NULL)
+                devices = g_variant_new_array (G_VARIANT_TYPE_DICT_ENTRY, NULL, 0);
+
+        cph_iface_mechanism_complete_devices_get (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret),
+                        devices);
+                
+        return TRUE;
+}
+
+static gboolean
 cph_mechanism_printer_add (CphIfaceMechanism     *object,
                            GDBusMethodInvocation *context,
                            const char            *name,
