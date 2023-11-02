@@ -725,9 +725,9 @@ cph_mechanism_printer_app_get (CphIfaceMechanism      *object,
                                          NULL))
                 return TRUE;
 
-        // ret = cph_cups_devices_get (mechanism->priv->cups,
-        //                             timeout,
-        //                             &devices);
+        ret = cph_cups_printer_app_get (mechanism->priv->cups,
+                                    timeout,
+                                    &devices);
 
         if (devices == NULL)
                 devices = g_variant_new_array (G_VARIANT_TYPE_DICT_ENTRY, NULL, 0);
@@ -1498,6 +1498,10 @@ cph_mechanism_connect_signals (CphMechanism *mechanism)
         g_signal_connect (mechanism,
                           "handle-devices-get",
                           G_CALLBACK (cph_mechanism_devices_get),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-app-get",
+                          G_CALLBACK (cph_mechanism_printer_app_get),
                           NULL);
         g_signal_connect (mechanism,
                           "handle-file-get",
