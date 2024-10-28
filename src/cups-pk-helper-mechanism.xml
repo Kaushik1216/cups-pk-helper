@@ -61,6 +61,16 @@
       <arg name="error"    direction="out" type="s"/>
     </method>
 
+    <!-- <method name="PrinterAppPrinterAdd">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="uri"      direction="in"  type="s"/>
+      <arg name="info"     direction="in"  type="s"/>
+      <arg name="id"       direction="in"  type="s"/>
+      <arg name="port"     direction="in"  type="p"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method> -->
+
     <method name="PrinterAddWithPpdFile">
       <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
       <arg name="name"     direction="in"  type="s"/>

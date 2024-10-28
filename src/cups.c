@@ -2113,7 +2113,7 @@ _cph_cups_printer_app_get (CphCups               *cups,
         printer_app_backend = g_new0 (Avahi,2);
         printer_app_backend[0].service_type = g_strdup_printf("_ipps-system._tcp");
         printer_app_backend[1].service_type = g_strdup_printf("_ipp-system._tcp");
-        
+
         for(int i = 0 ; i < 2; i++)
                 {
                         printer_app_backend[i].cups = cups;
@@ -2299,46 +2299,136 @@ cph_cups_printer_add (CphCups    *cups,
                       const char *info,
                       const char *location)
 {
-        ipp_t *request;
 
-        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+        ipp_t		        *request,		
+		                *response;		
+        ipp_attribute_t         *attr;		
+        http_t	                *http;			
+        int                     timeout_param = CUPS_TIMEOUT_DEFAULT;
 
-        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
-                return FALSE;
-        if (!_cph_cups_is_printer_uri_valid (cups, printer_uri))
-                return FALSE;
-        if (!_cph_cups_is_ppd_valid (cups, ppd_file))
-                return FALSE;
-        if (!_cph_cups_is_info_valid (cups, info))
-                return FALSE;
-        if (!_cph_cups_is_location_valid (cups, location))
-                return FALSE;
+        http = httpConnect2("localhost", 8001, NULL, AF_UNSPEC,
+                           HTTP_ENCRYPTION_IF_REQUESTED, 1, 30000, NULL);
 
-        request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
-        _cph_cups_add_printer_uri (request, printer_name);
-        _cph_cups_add_requesting_user_name (request, NULL);
+        request = ippNewRequest(IPP_OP_PAPPL_FIND_DRIVERS);
+        ippAddString(request, IPP_TAG_OPERATION, IPP_CONST_TAG(IPP_TAG_URI), "system-uri", NULL, "ipp://localhost/ipp/system");
+        // I will pass here correct device id for devices
+        //ippAddString(request, IPP_TAG_OPERATION, IPP_CONST_TAG(IPP_TAG_TEXT), "smi55357-device-id", NULL, "MFG:HP;CMD:PJL,PML,DW-PCL;MDL:HP LaserJet Tank MFP 260x;CLS:PRINTER;DES:HP LaserJet Tank MFP 2606dn;MEM:MEM=308MB;PRN:381U0A;S:0300000000000000000000000000000000;COMMENT:RES=600x2;LEDMDIS:USB#ff#04#01;CID:HPLJPCLMSMV2;MCT:MF;MCL:FL;MCV:4.2;");
+        response = cupsDoRequest(http, request, "/ipp/system");
 
-        ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-                      "printer-name", NULL, printer_name);
+        attr = ippFindAttribute(response, "smi55357-driver-col", IPP_TAG_BEGIN_COLLECTION);
+        const char *driver = NULL;
 
-        if (ppd_file && ppd_file[0] != '\0') {
-                ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-                              "ppd-name", NULL, ppd_file);
-        }
-        if (printer_uri && printer_uri[0] != '\0') {
-                ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_URI,
-                              "device-uri", NULL, printer_uri);
-        }
-        if (info && info[0] != '\0') {
-                ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_TEXT,
-                              "printer-info", NULL, info);
-        }
-        if (location && location[0] != '\0') {
-                ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_TEXT,
-                              "printer-location", NULL, location);
+        if (attr != NULL) {
+            driver = ippGetString(attr, 0, NULL);
         }
 
-        return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
+        request = ippNewRequest(IPP_OP_CREATE_PRINTER);
+
+        ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "system-uri", NULL, "ipp://localhost/ipp/system");
+        ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD, "printer-service-type", NULL, "print");
+        ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD, "smi55357-driver", NULL, driver);
+        ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "smi55357-device-uri", NULL, printer_uri);
+        ippAddString(request, IPP_TAG_PRINTER, IPP_TAG_NAME, "printer-name", NULL, printer_name);
+        // ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "requesting-user-name", NULL, cupsUser());
+        // return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
+
+        response = cupsDoRequest(http, request, "/ipp/system");
+
+        gboolean status = FALSE;
+        if (cupsLastError() != IPP_STATUS_OK) {
+                status = false;
+        }
+        ippDelete(response);
+        httpClose(http);
+
+        return status;
+
+        // ipp_t *request;
+
+        // g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        // if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+        //         return FALSE;
+        // if (!_cph_cups_is_printer_uri_valid (cups, printer_uri))
+        //         return FALSE;
+        // if (!_cph_cups_is_ppd_valid (cups, ppd_file))
+        //         return FALSE;
+        // if (!_cph_cups_is_info_valid (cups, info))
+        //         return FALSE;
+        // if (!_cph_cups_is_location_valid (cups, location))
+        //         return FALSE;
+
+        // request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
+        // _cph_cups_add_printer_uri (request, printer_name);
+        // _cph_cups_add_requesting_user_name (request, NULL);
+
+        // ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
+        //               "printer-name", NULL, printer_name);
+
+        // if (ppd_file && ppd_file[0] != '\0') {
+        //         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
+        //                       "ppd-name", NULL, ppd_file);
+        // }
+        // if (printer_uri && printer_uri[0] != '\0') {
+        //         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_URI,
+        //                       "device-uri", NULL, printer_uri);
+        // }
+        // if (info && info[0] != '\0') {
+        //         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_TEXT,
+        //                       "printer-info", NULL, info);
+        // }
+        // if (location && location[0] != '\0') {
+        //         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_TEXT,
+        //                       "printer-location", NULL, location);
+        // }
+
+        // return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
+}
+
+gboolean
+cph_cups_printer_app_printer_add(const char *printer_name,
+                      const char *device_uri,
+                      const char *device_info,
+                      const char *device_id,
+                      const char *hostname,
+                      int *port)
+{
+        ipp_t		        *request,		
+		                *response;		
+        ipp_attribute_t         *attr;		
+        http_t	                *http;			
+        int                     timeout_param = CUPS_TIMEOUT_DEFAULT;
+
+        http = httpConnect2("localhost", 8001, NULL, AF_UNSPEC,
+                           HTTP_ENCRYPTION_IF_REQUESTED, 1, 30000, NULL);
+
+        request = ippNewRequest(IPP_OP_CREATE_PRINTER);
+        // ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "system-uri", NULL, "ipp://localhost/ipp/system");
+        // ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD, "printer-service-type", NULL, "print");
+        // ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD, "smi55357-driver", NULL, "HP 915");
+        // ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "smi55357-device-uri", NULL, "ipps://Kaushikhp._ipps._tcp.local/");
+        // ippAddString(request, IPP_TAG_PRINTER, IPP_TAG_NAME, "printer-name", NULL, "Kaushikhp2");
+
+        ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "system-uri", NULL, "ipp://localhost/ipp/system");
+        ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD, "printer-service-type", NULL, "print");
+        ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD, "smi55357-driver", NULL, "auto");
+        // ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "smi55357-device-uri", NULL, device_uri);
+        // ippAddString(request, IPP_TAG_PRINTER, IPP_TAG_NAME, "printer-name", NULL, device_info);
+        // ippAddString(request, IPP_TAG_PRINTER, IPP_TAG_TEXT, "printer-device-id", NULL, device_id);
+        ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "smi55357-device-uri", NULL, "usb://Canon/MF240%20Series%20UFRII%20LT?serial=0175B636DB5C&interface=1");
+        ippAddString(request, IPP_TAG_PRINTER, IPP_TAG_NAME, "printer-name", NULL, "Canon MF240 Series UFRII LT");
+        ippAddString(request, IPP_TAG_PRINTER, IPP_TAG_TEXT, "printer-device-id", NULL, "MFG:Canon;MDL:MF240 Series UFRII LT;CMD:LIPSLX,CPCA;CLS:PRINTER;DES:Canon MF240 Series UFRII LT;CID:CA UFRII BW OIP;IPP-HTTP:T;IPP-E:07-01-04; PESP:V1;");
+        ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "requesting-user-name", NULL, cupsUser());
+        response = cupsDoRequest(http, request, "/ipp/system");
+
+        gboolean status = true;
+        if (cupsLastError() != IPP_STATUS_OK) {
+                status = false;
+        }
+        ippDelete(response);
+        httpClose(http);
+
+        return status;
 }
 
 gboolean

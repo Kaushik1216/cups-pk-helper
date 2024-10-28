@@ -24,7 +24,10 @@
 
 #include <glib.h>
 
-#include "cph-iface-mechanism.h"
+// #include "cph-iface-mechanism.h"
+
+// #include "/home/kaushik/Downloads/cups-pk-helper/builddir/src/cph-iface-mechanism.h"
+#include "/home/kaushik/Downloads/cups-pk-helper/builddir/src/cph-iface-mechanism.c"
 
 static gboolean
 printer_add (GDBusProxy  *proxy,
@@ -93,9 +96,21 @@ main (int argc, char **argv)
         }
 
         error = NULL;
+        // ret = printer_add (G_DBUS_PROXY (proxy),
+        //                    "MyPrinter", "smb://really/cool",
+        //                    "HP/Business_Inkjet_2200-chp2200.ppd.gz",
+        //                    "This is my printer", "At home",
+        //                    &error);
+
+        // ret = printer_add (G_DBUS_PROXY (proxy),
+        //                    "MF240", "cups-pdf:/",
+        //                    "usb://Canon/MF240%20Series%20UFRII%20LT?serial=0175B636DB5C&interface=1",
+        //                    "Canon MF240 Series UFRII LT", "At home",
+        //                    &error);
+
         ret = printer_add (G_DBUS_PROXY (proxy),
-                           "MyPrinter", "smb://really/cool",
-                           "HP/Business_Inkjet_2200-chp2200.ppd.gz",
+                           "CUPS-PDF-Printer-3", "cups-pdf:/",
+                           "CUPS-PDF_noopt.ppd",
                            "This is my printer", "At home",
                            &error);
 
